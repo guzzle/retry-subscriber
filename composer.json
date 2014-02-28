@@ -1,0 +1,24 @@
+{
+    "name": "guzzle/retry-subscriber",
+    "description": "Retries failed HTTP requests using customizable retry strategies (Guzzle 4+)",
+    "homepage": "http://guzzlephp.org/",
+    "keywords": ["retry", "http", "guzzle"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Michael Dowling",
+            "email": "mtdowling@gmail.com",
+            "homepage": "https://github.com/mtdowling"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0",
+        "guzzle/guzzle": "dev-guzzle4"
+    },
+    "require-dev": {
+        "guzzle/log-subscriber": "~1.0"
+    },
+    "autoload": {
+        "psr-4": { "GuzzleHttp\\Subscriber\\Retry\\": "src/" }
+    }
+}
