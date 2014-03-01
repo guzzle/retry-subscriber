@@ -1,5 +1,5 @@
 {
-    "name": "guzzle/retry-subscriber",
+    "name": "guzzlehttp/retry-subscriber",
     "description": "Retries failed HTTP requests using customizable retry strategies (Guzzle 4+)",
     "homepage": "http://guzzlephp.org/",
     "keywords": ["retry", "http", "guzzle"],
@@ -16,7 +16,7 @@
         "guzzle/guzzle": "dev-guzzle4"
     },
     "require-dev": {
-        "guzzle/log-subscriber": "~1.0"
+        "guzzlehttp/log-subscriber": "dev-master"
     },
     "autoload": {
         "psr-4": { "GuzzleHttp\\Subscriber\\Retry\\": "src/" }
