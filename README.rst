@@ -18,8 +18,28 @@ Here's a simple example of how it's used:
     $client = new GuzzleHttp\Client();
     $client->getEmitter()->addSubscriber($retry);
 
-The RetrySubcriber's constructor accepts an associative array of configuration
-options. The only required option is the ``filter`` option.
+Creating a RetrySubscriber
+--------------------------
+
+The constructor of the RetrySubscriber accepts an associative array of
+configuration options:
+
+filter
+    (callable) (Required) Filter used to determine whether or not to retry a
+    request. The filter must be a callable that accepts the current number of
+    retries and an AbstractTransferEvent object. The filter must return true or
+    false to denote if the request must be retried.
+delay
+    (callable) Accepts the number of retries and an AbstractTransferEvent and
+    returns the amount of of time in seconds to delay. If no value is provided,
+    a default exponential backoff implementation.
+max
+    (int) Maximum number of retries to allow before giving up. Defaults to 5.
+sleep
+    (callable) Function invoked when the subscriber needs to sleep. Accepts a
+    float containing the amount of time in seconds to sleep and an
+    AbstractTransferEvent. If not provided, a default ``usleep()``
+    implementation is used.
 
 Determining what should be retried
 ----------------------------------
@@ -56,6 +76,9 @@ endpoint:
 
     $client = new GuzzleHttp\Client();
     $client->getEmitter()->addSubscriber($retry);
+
+Filter Chains
+~~~~~~~~~~~~~
 
 Here's an example of using a more customizable retry chain. This example retries
 faile 500 and 503 responses for only idempotent GET and HEAD requests. Retry
