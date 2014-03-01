@@ -16,7 +16,8 @@
         "guzzle/guzzle": "dev-guzzle4"
     },
     "require-dev": {
-        "guzzlehttp/log-subscriber": "dev-master"
+        "guzzlehttp/log-subscriber": "dev-master",
+        "phpunit/phpunit": "3.7.*"
     },
     "autoload": {
         "psr-4": { "GuzzleHttp\\Subscriber\\Retry\\": "src/" }
