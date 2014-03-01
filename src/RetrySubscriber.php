@@ -5,7 +5,7 @@ namespace GuzzleHttp\Subscriber\Retry;
 use GuzzleHttp\Event\SubscriberInterface;
 use GuzzleHttp\Event\AbstractTransferEvent;
 use GuzzleHttp\Event\ErrorEvent;
-use GuzzleHttp\Subscriber\Log\MessageFormatter;
+use GuzzleHttp\Subscriber\Log\Formatter;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 
@@ -106,9 +106,9 @@ class RetrySubscriber implements SubscriberInterface
      * Creates a delay function that logs each retry before proxying to a
      * wrapped delay function.
      *
-     * @param callable                $delayFn   Delay function to proxy to
-     * @param LoggerInterface         $logger    Logger used to log messages
-     * @param string|MessageFormatter $formatter Formatter to format messages
+     * @param callable         $delayFn   Delay function to proxy to
+     * @param LoggerInterface  $logger    Logger used to log messages
+     * @param string|Formatter $formatter Message formatter to format messages
      *
      * @return callable
      */
@@ -118,9 +118,9 @@ class RetrySubscriber implements SubscriberInterface
         $formatter = null
     ) {
         if (!$formatter) {
-            $formatter = new MessageFormatter(self::MSG_FORMAT);
-        } elseif (!($formatter instanceof MessageFormatter)) {
-            $formatter = new MessageFormatter($formatter);
+            $formatter = new Formatter(self::MSG_FORMAT);
+        } elseif (!($formatter instanceof Formatter)) {
+            $formatter = new Formatter($formatter);
         }
 
         return function ($retries, AbstractTransferEvent $event) use ($delayFn, $logger, $formatter) {
