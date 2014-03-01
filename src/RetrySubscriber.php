@@ -15,13 +15,13 @@ use Psr\Log\LogLevel;
  */
 class RetrySubscriber implements SubscriberInterface
 {
-    const RETRY_FORMAT = '[{ts}] {method} {url} - {code} {phrase} - Retries: {retries}, Delay: {delay}, Time: {connect_time}, {total_time}, Error: {error}';
+    const MSG_FORMAT = '[{ts}] {method} {url} - {code} {phrase} - Retries: {retries}, Delay: {delay}, Time: {connect_time}, {total_time}, Error: {error}';
 
     /** @var callable */
     private $filter;
 
     /** @var callable */
-    private $delayFunc;
+    private $delayFn;
 
     /** @var int */
     private $maxRetries;
@@ -38,26 +38,36 @@ class RetrySubscriber implements SubscriberInterface
     }
 
     /**
-     * @param callable $filter     Filter used to determine whether or not to retry a request. The filter must be a
-     *                             callable that accepts the current number of retries and an AbstractTransferStatsEvent
-     *                             object. The filter must return true or false to denote if the request must be retried
-     * @param callable $delayFunc  Callable that accepts the number of retries and an AbstractTransferStatsEvent and
-     *                             returns the amount of of time in seconds to delay.
-     * @param int      $maxRetries Maximum number of retries
-     * @param callable $sleepFn    Function invoked when the subscriber needs to sleep. Accepts a float containing the
-     *                             amount of time in seconds to sleep and an AbstractTransferStatsEvent.
+     * @param array $config Associative array of configuration options.
+     *     - filter: (callable) (Required) Filter used to determine whether or
+     *       not to retry a request. The filter must be a callable that accepts
+     *       the current number of retries and an AbstractTransferEvent object.
+     *       The filter must return true or false to denote if the request must
+     *       be retried.
+     *     - delay: (callable) Accepts the number of retries and an
+     *       AbstractTransferEvent and returns the amount of of time in seconds
+     *       to delay. If no value is provided, a default exponential backoff
+     *       implementation.
+     *     - max: (int) Maximum number of retries to allow before giving up.
+     *       Defaults to 5.
+     *     - sleep: (callable) Function invoked when the subscriber needs to
+     *       sleep. Accepts a float containing the amount of time in seconds to
+     *       sleep and an AbstractTransferEvent. Defaults to a usleep().
+     * @throws \InvalidArgumentException if a filter is not provided.
      */
-    public function __construct(
-        callable $filter,
-        callable $delayFunc = null,
-        $maxRetries = 5,
-        callable $sleepFn = null
-    ) {
-        static $defaultDelayFunc = [__CLASS__, 'exponentialDelay'];
-        $this->filter = $filter;
-        $this->delayFunc = $delayFunc ?: $defaultDelayFunc;
-        $this->maxRetries = $maxRetries;
-        $this->sleepFn = $sleepFn ?: function($time) { usleep($time * 1000); };
+    public function __construct(array $config)
+    {
+        static $defaultDelay = [__CLASS__, 'exponentialDelay'];
+        static $defaultSleep = [__CLASS__, 'defaultSleep'];
+
+        if (!isset($config['filter'])) {
+            throw new \InvalidArgumentException('A "filter" is required');
+        }
+
+        $this->filter = $config['filter'];
+        $this->delayFn = isset($config['delay']) ? $config['delay'] : $defaultDelay;
+        $this->sleepFn = isset($config['sleep']) ? $config['sleep'] : $defaultSleep;
+        $this->maxRetries = isset($config['max']) ? $config['max'] : 5;
     }
 
     public function onRequestSent(AbstractTransferEvent $event)
@@ -68,7 +78,7 @@ class RetrySubscriber implements SubscriberInterface
         if ($retries < $this->maxRetries) {
             $filterFn = $this->filter;
             if ($filterFn($retries, $event)) {
-                $delayFn = $this->delayFunc;
+                $delayFn = $this->delayFn;
                 $sleepFn = $this->sleepFn;
                 $sleepFn($delayFn($retries, $event), $event);
                 $request->getConfig()->set('retries', ++$retries);
@@ -108,7 +118,7 @@ class RetrySubscriber implements SubscriberInterface
         $formatter = null
     ) {
         if (!$formatter) {
-            $formatter = new MessageFormatter(self::RETRY_FORMAT);
+            $formatter = new MessageFormatter(self::MSG_FORMAT);
         } elseif (!($formatter instanceof MessageFormatter)) {
             $formatter = new MessageFormatter($formatter);
         }
@@ -197,5 +207,13 @@ class RetrySubscriber implements SubscriberInterface
 
             return false;
         };
+    }
+
+    /**
+     * Default sleep implementation
+     */
+    private static function defaultSleep($time, AbstractTransferEvent $event)
+    {
+        usleep($time * 1000);
     }
 }

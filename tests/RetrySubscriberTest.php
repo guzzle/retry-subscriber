@@ -2,11 +2,14 @@
 
 namespace GuzzleHttp\Tests\Subscriber\RetrySubscriber;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Message\Request;
 use GuzzleHttp\Message\RequestInterface;
 use GuzzleHttp\Message\Response;
 use GuzzleHttp\Message\ResponseInterface;
 use GuzzleHttp\Subscriber\Log\SimpleLogger;
+use GuzzleHttp\Subscriber\Mock;
 use GuzzleHttp\Subscriber\Retry\RetrySubscriber;
 
 class RetrySubscriberTest extends \PHPUnit_Framework_TestCase
@@ -67,6 +70,17 @@ class RetrySubscriberTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($f(1, $e));
     }
 
+    public function testChainFilterCanBreakChainWhenFiltering()
+    {
+        $e = $this->createEvent(new Response(500));
+        $f = RetrySubscriber::createChainFilter([
+            function () { return false; },
+            function () { return -1; },
+            function () { throw new \Exception('Did not break chain!'); },
+        ]);
+        $this->assertFalse($f(1, $e));
+    }
+
     public function testCreateLoggingDelayFilter()
     {
         $str = fopen('php://temp', 'r+');
@@ -101,6 +115,79 @@ class RetrySubscriberTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(2, RetrySubscriber::exponentialDelay(2, $e));
         $this->assertEquals(4, RetrySubscriber::exponentialDelay(3, $e));
         $this->assertEquals(8, RetrySubscriber::exponentialDelay(4, $e));
+    }
+
+    public function testProvidesDefaultDelay()
+    {
+        $called = false;
+        $retry = new RetrySubscriber([
+            'filter' => function () {
+                static $times = 0;
+                return ++$times == 1;
+            },
+            'sleep' => function ($time) use (&$called) {
+                $this->assertEquals(0, $time);
+                $called = true;
+            }
+        ]);
+        $mock = new Mock([new Response(200), new Response(200)]);
+        $client = new Client();
+        $client->getEmitter()->addSubscriber($mock);
+        $client->getEmitter()->addSubscriber($retry);
+        $client->get('/');
+        $this->assertTrue($called);
+    }
+
+    public function testProvidesDefaultSleepFn()
+    {
+        $called = false;
+        $retry = new RetrySubscriber([
+            'filter' => function () {
+                static $times = 0;
+                return ++$times == 1;
+            },
+            'delay' => function () use (&$called) {
+                $called = true;
+                return 0;
+            }
+        ]);
+        $mock = new Mock([new Response(200), new Response(200)]);
+        $client = new Client();
+        $client->getEmitter()->addSubscriber($mock);
+        $client->getEmitter()->addSubscriber($retry);
+        $client->get('/');
+        $this->assertTrue($called);
+    }
+
+    public function testAllowsFailureAfterMax()
+    {
+        $called = 0;
+        $retry = new RetrySubscriber([
+            'filter' => function () use (&$called) {
+                $called++;
+                return true;
+             },
+            'max' => 2
+        ]);
+        $mock = new Mock([new Response(500), new Response(500), new Response(500)]);
+        $client = new Client();
+        $client->getEmitter()->addSubscriber($mock);
+        $client->getEmitter()->addSubscriber($retry);
+        try {
+            $client->get('/');
+            $this->fail('Did not fail');
+        } catch (ServerException $e) {
+            $this->assertEquals(2, $called);
+            $this->assertCount(0, $mock);
+        }
+    }
+
+    /**
+     * @expectedException \InvalidArgumentException
+     */
+    public function testEnsuresFilterIsProvided()
+    {
+        new RetrySubscriber([]);
     }
 
     private function createEvent(
