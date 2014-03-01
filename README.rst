@@ -30,8 +30,35 @@ request and a ``GuzzleHttp\\Event\\CompleteEvent`` or
 The filter must then return true if the request should be retried, or false if
 it should not be retried.
 
-Here's an example of retrying failed 500 and 503 responses for only idempotent
-requests.
+Here's an example of retrying failed 500 responses sent to the ``/foo``
+endpoint:
+
+.. code-block:: php
+
+    use GuzzleHttp\Event\AbstractTransferEvent;
+    use GuzzleHttp\Subscriber\Retry\RetrySubscriber;
+
+    $filter = function (AbstractTransferEvent $event) {
+        $resource = $event->getRequest()->getResource();
+        // A response is not always received (e.g., for timeouts)
+        $code = $event->getResponse()
+            ? $event->getResponse()->getStatusCode()
+            : null;
+
+        return $resource == '/foo' && $code == 500;
+    };
+
+    $retry = new RetrySubscriber($filter);
+    $client = new GuzzleHttp\Client();
+    $client->getEmitter()->addSubscriber($retry);
+
+Here's an example of using a more customizable retry chain. This example retries
+faile 500 and 503 responses for only idempotent GET and HEAD requests. Retry
+chains are created using the static ``RetrySubscriber::createFilterChain()``
+method. This method accepts an array of callable filters that are each invoked
+one after the other until a filter returns ``true`` (meaning the request should
+be retried), a filter returns ``-1`` (meaning the chain should be broken and
+the request should not be retried), or the last filter has been called.
 
 .. code-block:: php
 
@@ -39,17 +66,23 @@ requests.
     use GuzzleHttp\Subscriber\Retry\RetrySubscriber;
 
     // Retry 500 and 503 responses that were sent as GET and HEAD requests.
-    // This type of complex filter can be achieved using a filter chain. In the
-    // chain, each filter is invoked one after the other until a filter returns
-    // true or the end of the chain (if is a series of "OR" filters).
     $filter = RetrySubscriber::createChainFilter([
         function (AbstractTransferEvent $event) {
             $method = $event->getRequests()
                 ? $event->getRequest()->getMethod()
                 : null;
-            return in_array($method, ['GET', 'HEAD']);
+
+            // Break the filter if it was not an idempotent request
+            if (!in_array($method, ['GET', 'HEAD'])) {
+                return -1;
+            }
+
+            // Otherwise, defer to subsequent filters
+            return false;
         },
-        RetrySubscriber::createStatusFilter()
+        // Performs the last check, returning ``true`` or ``false`` based on
+        // if the response received a 500 or 503 status code.
+        RetrySubscriber::createStatusFilter([500, 503])
     ]);
 
     $retry = new RetrySubscriber($filter);

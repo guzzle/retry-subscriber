@@ -171,11 +171,14 @@ class RetrySubscriber implements SubscriberInterface
 
     /**
      * Creates a chain of callables that triggers one after the other until a
-     * callable returns true.
+     * callable returns true (which results in a true return value), or a
+     * callable short circuits the chain by returning -1 (resulting in a false
+     * return value).
      *
      * @param array $filters Array of callables that accept the number of
      *   retries and an after send event and return true to retry the
-     *   transaction or false to not retry.
+     *   transaction, false to not retry and pass to the next filter in the
+     *   chain, or -1 to not retry and to immediately break the chain.
      *
      * @return callable Returns a filter that can be used to determine if a
      *   transaction should be retried
@@ -184,8 +187,11 @@ class RetrySubscriber implements SubscriberInterface
     {
         return function ($retries, AbstractTransferStatsEvent $event) use ($filters) {
             foreach ($filters as $filter) {
-                if ($filter($retries, $event)) {
+                $result = $filter($retries, $event);
+                if ($result === true) {
                     return true;
+                } elseif ($result === -1) {
+                    return false;
                 }
             }
 
