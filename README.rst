@@ -24,8 +24,8 @@ The first argument of the RetrySubscriber's constructor is a callable that is
 invoked to determine if a request should be retried.
 
 When the filter is invoked, it is provided the current retry count for the
-request and a ``GuzzleHttp\\Event\\CompleteEvent`` or
-``GuzzleHttp\\Event\\ErrorEvent`` (both events extend from
+request and a ``GuzzleHttp\Event\CompleteEvent`` or
+``GuzzleHttp\Event\ErrorEvent`` (both events extend from
 ``GuzzleHttp\Event\AbstractTransferEvent``, so you should typehint on that).
 The filter must then return true if the request should be retried, or false if
 it should not be retried.
@@ -95,8 +95,8 @@ Customizing the amount of delay
 The second argument provided to the RetrySubscriber's constructor is a callable
 that is used to determine the amount of time to delay before retrying a request
 that has been marked as needing a retry. This method accepts the current number
-of retries and either a ``GuzzleHttp\\Event\\CompleteEvent`` or a
-``GuzzleHttp\\Event\\ErrorEvent``. The function must then return an integer or
+of retries and either a ``GuzzleHttp\Event\CompleteEvent`` or a
+``GuzzleHttp\Event\ErrorEvent``. The function must then return an integer or
 float representing the amount of time in seconds to sleep.
 
 Omitting this argument will use a default exponential backoff strategy.
