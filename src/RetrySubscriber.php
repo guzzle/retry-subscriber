@@ -3,7 +3,7 @@
 namespace GuzzleHttp\Subscriber\Retry;
 
 use GuzzleHttp\Event\SubscriberInterface;
-use GuzzleHttp\Event\AbstractTransferStatsEvent;
+use GuzzleHttp\Event\AbstractTransferEvent;
 use GuzzleHttp\Event\ErrorEvent;
 use GuzzleHttp\Subscriber\Log\MessageFormatter;
 use Psr\Log\LoggerInterface;
@@ -60,7 +60,7 @@ class RetrySubscriber implements SubscriberInterface
         $this->sleepFn = $sleepFn ?: function($time) { usleep($time * 1000); };
     }
 
-    public function onRequestSent(AbstractTransferStatsEvent $event)
+    public function onRequestSent(AbstractTransferEvent $event)
     {
         $request = $event->getRequest();
         $retries = (int) $request->getConfig()->get('retries');
@@ -80,14 +80,14 @@ class RetrySubscriber implements SubscriberInterface
     /**
      * Returns an exponential delay calculation
      *
-     * @param int                        $retries Number of retries so far
-     * @param AbstractTransferStatsEvent $event   Event containing transactional information
+     * @param int                   $retries Number of retries so far
+     * @param AbstractTransferEvent $event   Event containing transaction info
      *
      * @return int
      */
     public static function exponentialDelay(
         $retries,
-        AbstractTransferStatsEvent $event
+        AbstractTransferEvent $event
     ) {
         return (int) pow(2, $retries - 1);
     }
@@ -113,7 +113,7 @@ class RetrySubscriber implements SubscriberInterface
             $formatter = new MessageFormatter($formatter);
         }
 
-        return function ($retries, AbstractTransferStatsEvent $event) use ($delayFn, $logger, $formatter) {
+        return function ($retries, AbstractTransferEvent $event) use ($delayFn, $logger, $formatter) {
             $delay = $delayFn($retries, $event);
             $logger->log(LogLevel::NOTICE, $formatter->format(
                 $event->getRequest(),
@@ -138,7 +138,7 @@ class RetrySubscriber implements SubscriberInterface
         $failureStatuses = $failureStatuses ?: [500, 503];
         $failureStatuses = array_fill_keys($failureStatuses, 1);
 
-        return function ($retries, AbstractTransferStatsEvent $event) use ($failureStatuses) {
+        return function ($retries, AbstractTransferEvent $event) use ($failureStatuses) {
             if (!($response = $event->getResponse())) {
                 return false;
             }
@@ -164,7 +164,7 @@ class RetrySubscriber implements SubscriberInterface
 
         $errorCodes = array_fill_keys($errorCodes, 1);
 
-        return function ($retries, AbstractTransferStatsEvent $event) use ($errorCodes) {
+        return function ($retries, AbstractTransferEvent $event) use ($errorCodes) {
             return isset($errorCodes[(int) $event->getTransferInfo('curl_result')]);
         };
     }
@@ -185,7 +185,7 @@ class RetrySubscriber implements SubscriberInterface
      */
     public static function createChainFilter(array $filters)
     {
-        return function ($retries, AbstractTransferStatsEvent $event) use ($filters) {
+        return function ($retries, AbstractTransferEvent $event) use ($filters) {
             foreach ($filters as $filter) {
                 $result = $filter($retries, $event);
                 if ($result === true) {

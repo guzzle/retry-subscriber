@@ -2,13 +2,10 @@
 
 namespace GuzzleHttp\Tests\Subscriber\RetrySubscriber;
 
-use GuzzleHttp\Client;
 use GuzzleHttp\Message\Request;
 use GuzzleHttp\Message\RequestInterface;
 use GuzzleHttp\Message\Response;
 use GuzzleHttp\Message\ResponseInterface;
-use GuzzleHttp\Subscriber\History;
-use GuzzleHttp\Subscriber\Mock;
 use GuzzleHttp\Subscriber\Log\SimpleLogger;
 use GuzzleHttp\Subscriber\Retry\RetrySubscriber;
 
@@ -111,7 +108,7 @@ class RetrySubscriberTest extends \PHPUnit_Framework_TestCase
         RequestInterface $request = null,
         \Exception $exception = null,
         array $transferInfo = [],
-        $type = 'GuzzleHttp\Event\AbstractTransferStatsEvent'
+        $type = 'GuzzleHttp\Event\AbstractTransferEvent'
     ) {
         if (!$request) {
             $request = new Request('GET', 'http://www.foo.com');
