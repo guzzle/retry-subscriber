@@ -11,17 +11,21 @@ Here's a simple example of how it's used:
     use GuzzleHttp\Subscriber\Retry\RetrySubscriber;
 
     // Retry 500 and 503 responses
-    $filter = RetrySubscriber::createStatusFilter();
-    $retry = new RetrySubscriber($filter);
+    $retry = new RetrySubscriber([
+        'filter' => RetrySubscriber::createStatusFilter()
+    ]);
 
     $client = new GuzzleHttp\Client();
     $client->getEmitter()->addSubscriber($retry);
 
+The RetrySubcriber's constructor accepts an associative array of configuration
+options. The only required option is the ``filter`` option.
+
 Determining what should be retried
 ----------------------------------
 
-The first argument of the RetrySubscriber's constructor is a callable that is
-invoked to determine if a request should be retried.
+The requied ``filter`` option of the RetrySubscriber's constructor is a
+callable that is invoked to determine if a request should be retried.
 
 When the filter is invoked, it is provided the current retry count for the
 request and a ``GuzzleHttp\Event\CompleteEvent`` or
@@ -38,17 +42,18 @@ endpoint:
     use GuzzleHttp\Event\AbstractTransferEvent;
     use GuzzleHttp\Subscriber\Retry\RetrySubscriber;
 
-    $filter = function (AbstractTransferEvent $event) {
-        $resource = $event->getRequest()->getResource();
-        // A response is not always received (e.g., for timeouts)
-        $code = $event->getResponse()
-            ? $event->getResponse()->getStatusCode()
-            : null;
+    $retry = new RetrySubscriber([
+        'filter' => function (AbstractTransferEvent $event) {
+            $resource = $event->getRequest()->getResource();
+            // A response is not always received (e.g., for timeouts)
+            $code = $event->getResponse()
+                ? $event->getResponse()->getStatusCode()
+                : null;
 
-        return $resource == '/foo' && $code == 500;
-    };
+            return $resource == '/foo' && $code == 500;
+        }
+    ]);
 
-    $retry = new RetrySubscriber($filter);
     $client = new GuzzleHttp\Client();
     $client->getEmitter()->addSubscriber($retry);
 
@@ -85,21 +90,24 @@ the request should not be retried), or the last filter has been called.
         RetrySubscriber::createStatusFilter([500, 503])
     ]);
 
-    $retry = new RetrySubscriber($filter);
+    $retry = new RetrySubscriber(['filter' => $filter]);
     $client = new GuzzleHttp\Client();
     $client->getEmitter()->addSubscriber($retry);
 
 Customizing the amount of delay
 -------------------------------
 
-The second argument provided to the RetrySubscriber's constructor is a callable
-that is used to determine the amount of time to delay before retrying a request
-that has been marked as needing a retry. This method accepts the current number
-of retries and either a ``GuzzleHttp\Event\CompleteEvent`` or a
-``GuzzleHttp\Event\ErrorEvent``. The function must then return an integer or
-float representing the amount of time in seconds to sleep.
+``delay`` is an optional configuration option in the RetrySubscriber's
+constructor that is a callable used to determine the amount of time to delay
+before retrying a request that has been marked as needing a retry. The callable
+accepts the current number of retries and either a
+``GuzzleHttp\Event\CompleteEvent`` or a ``GuzzleHttp\Event\ErrorEvent``. The
+function must then return an integer or float representing the amount of time
+in seconds to sleep.
 
-Omitting this argument will use a default exponential backoff strategy.
+.. note::
+
+    Omitting this argument will use a default exponential backoff strategy.
 
 Here's an example of creating a custom delay that always delays for 1 second:
 
@@ -107,25 +115,34 @@ Here's an example of creating a custom delay that always delays for 1 second:
 
     use GuzzleHttp\Subscriber\Retry\RetrySubscriber;
 
-    $filter = RetrySubscriber::createStatusFilter();
-    $delayFn = function ($number, $event) { return 1; };
-    $retry = new RetrySubscriber($filter, $delayFn);
+    $retry = new RetrySubscriber([
+        'filter' => RetrySubscriber::createStatusFilter(),
+        'delay'  => function ($number, $event) { return 1; }
+    ]);
 
 Changing the max number of retries
 ----------------------------------
 
-You can also specify an optional max number of retries in the third argument of
-the RetrySubscriber's constructor. If not specified, a request can be retried
-up to 5 times before it is allowed to fail.
+You can also specify an optional max number of retries in the ``max``
+configuration option of the RetrySubscriber's constructor. If not specified, a
+request can be retried up to 5 times before it is allowed to fail.
+
+.. code-block:: php
+
+    use GuzzleHttp\Subscriber\Retry\RetrySubscriber;
+
+    $retry = new RetrySubscriber([
+        'filter' => RetrySubscriber::createStatusFilter(),
+        'max'    => 3
+    ]);
 
 Testing without sleeping
 ------------------------
 
-The final, optional, argument of the RetrySubscriber's constructor is a
-function that is used to perform the actual sleep. This function accepts a
-float representing the amount of time to sleep. If not provided, Guzzle will
-just call ``usleep()``. It may be helpful when testing custom retry strategies
-to provide a custom function that does not actually perform a sleep.
+The final, optional, option in the RetrySubscriber's constructor is ``sleep``,
+a callable that is used to perform the actual sleep. This function accepts a
+float representing the amount of time to sleep. If not provided, usleep() will
+be called to perform the sleep.
 
 Here's an example of creating a retry subscriber that doesn't actually perform
 a sleep when it is told to sleep.
@@ -134,6 +151,12 @@ a sleep when it is told to sleep.
 
     use GuzzleHttp\Subscriber\Retry\RetrySubscriber;
 
-    $filter = RetrySubscriber::createStatusFilter();
-    $sleepFn = function ($time) { return; };
-    $retry = new RetrySubscriber($filter, null, 5, $sleepFn);
+    $retry = new RetrySubscriber([
+        'filter' => RetrySubscriber::createStatusFilter(),
+        'sleep'  => function ($time) { return; }
+    ]);
+
+.. hint::
+
+    It may be helpful when testing custom retry strategies to provide a custom
+    function that does not actually perform a sleep.
