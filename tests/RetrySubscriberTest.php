@@ -134,7 +134,7 @@ class RetrySubscriberTest extends \PHPUnit_Framework_TestCase
         $client = new Client();
         $client->getEmitter()->addSubscriber($mock);
         $client->getEmitter()->addSubscriber($retry);
-        $client->get('/');
+        $client->get('http://httbin.org/get');
         $this->assertTrue($called);
     }
 
@@ -155,7 +155,7 @@ class RetrySubscriberTest extends \PHPUnit_Framework_TestCase
         $client = new Client();
         $client->getEmitter()->addSubscriber($mock);
         $client->getEmitter()->addSubscriber($retry);
-        $client->get('/');
+        $client->get('http://httbin.org/get');
         $this->assertTrue($called);
     }
 
@@ -174,7 +174,7 @@ class RetrySubscriberTest extends \PHPUnit_Framework_TestCase
         $client->getEmitter()->addSubscriber($mock);
         $client->getEmitter()->addSubscriber($retry);
         try {
-            $client->get('/');
+            $client->get('http://httbin.org/get');
             $this->fail('Did not fail');
         } catch (ServerException $e) {
             $this->assertEquals(2, $called);
