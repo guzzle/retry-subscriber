@@ -132,8 +132,8 @@ class RetrySubscriberTest extends \PHPUnit_Framework_TestCase
         ]);
         $mock = new Mock([new Response(200), new Response(200)]);
         $client = new Client();
-        $client->getEmitter()->addSubscriber($mock);
-        $client->getEmitter()->addSubscriber($retry);
+        $client->getEmitter()->attach($mock);
+        $client->getEmitter()->attach($retry);
         $client->get('http://httbin.org/get');
         $this->assertTrue($called);
     }
@@ -153,8 +153,8 @@ class RetrySubscriberTest extends \PHPUnit_Framework_TestCase
         ]);
         $mock = new Mock([new Response(200), new Response(200)]);
         $client = new Client();
-        $client->getEmitter()->addSubscriber($mock);
-        $client->getEmitter()->addSubscriber($retry);
+        $client->getEmitter()->attach($mock);
+        $client->getEmitter()->attach($retry);
         $client->get('http://httbin.org/get');
         $this->assertTrue($called);
     }
@@ -171,8 +171,8 @@ class RetrySubscriberTest extends \PHPUnit_Framework_TestCase
         ]);
         $mock = new Mock([new Response(500), new Response(500), new Response(500)]);
         $client = new Client();
-        $client->getEmitter()->addSubscriber($mock);
-        $client->getEmitter()->addSubscriber($retry);
+        $client->getEmitter()->attach($mock);
+        $client->getEmitter()->attach($retry);
         try {
             $client->get('http://httbin.org/get');
             $this->fail('Did not fail');

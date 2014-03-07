@@ -29,14 +29,6 @@ class RetrySubscriber implements SubscriberInterface
     /** @var callable */
     private $sleepFn;
 
-    public static function getSubscribedEvents()
-    {
-        return [
-            'complete' => ['onRequestSent'],
-            'error'    => ['onRequestSent']
-        ];
-    }
-
     /**
      * @param array $config Associative array of configuration options.
      *     - filter: (callable) (Required) Filter used to determine whether or
@@ -70,7 +62,15 @@ class RetrySubscriber implements SubscriberInterface
         $this->maxRetries = isset($config['max']) ? $config['max'] : 5;
     }
 
-    public function onRequestSent(AbstractTransferEvent $event)
+    public function getEvents()
+    {
+        return [
+            'complete' => ['onComplete'],
+            'error'    => ['onComplete']
+        ];
+    }
+
+    public function onComplete(AbstractTransferEvent $event)
     {
         $request = $event->getRequest();
         $retries = (int) $request->getConfig()->get('retries');

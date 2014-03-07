@@ -16,7 +16,7 @@ Here's a simple example of how it's used:
     ]);
 
     $client = new GuzzleHttp\Client();
-    $client->getEmitter()->addSubscriber($retry);
+    $client->getEmitter()->attach($retry);
 
 Creating a RetrySubscriber
 --------------------------
@@ -75,7 +75,7 @@ endpoint:
     ]);
 
     $client = new GuzzleHttp\Client();
-    $client->getEmitter()->addSubscriber($retry);
+    $client->getEmitter()->attach($retry);
 
 Filter Chains
 ~~~~~~~~~~~~~
@@ -115,7 +115,7 @@ the request should not be retried), or the last filter has been called.
 
     $retry = new RetrySubscriber(['filter' => $filter]);
     $client = new GuzzleHttp\Client();
-    $client->getEmitter()->addSubscriber($retry);
+    $client->getEmitter()->attach($retry);
 
 Customizing the amount of delay
 -------------------------------
