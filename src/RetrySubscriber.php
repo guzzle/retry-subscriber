@@ -2,6 +2,7 @@
 
 namespace GuzzleHttp\Subscriber\Retry;
 
+use GuzzleHttp\Event\RequestEvents;
 use GuzzleHttp\Event\SubscriberInterface;
 use GuzzleHttp\Event\AbstractTransferEvent;
 use GuzzleHttp\Event\ErrorEvent;
@@ -65,8 +66,10 @@ class RetrySubscriber implements SubscriberInterface
     public function getEvents()
     {
         return [
-            'complete' => ['onComplete'],
-            'error'    => ['onComplete']
+            // Fire before responses are verified (e.g., HttpError).
+            'complete' => ['onComplete', RequestEvents::VERIFY_RESPONSE + 100],
+            // Fire soon after logging, history, and other early events.
+            'error'    => ['onComplete', RequestEvents::EARLY - 100]
         ];
     }
 
