@@ -32,7 +32,7 @@ filter
 delay
     (callable) Accepts the number of retries and an AbstractTransferEvent and
     returns the amount of of time in seconds to delay. If no value is provided,
-    a default exponential backoff implementation.
+    a default exponential backoff implementation is used.
 max
     (int) Maximum number of retries to allow before giving up. Defaults to 5.
 sleep
@@ -44,7 +44,7 @@ sleep
 Determining what should be retried
 ----------------------------------
 
-The requied ``filter`` option of the RetrySubscriber's constructor is a
+The required ``filter`` option of the RetrySubscriber's constructor is a
 callable that is invoked to determine if a request should be retried.
 
 When the filter is invoked, it is provided the current retry count for the
