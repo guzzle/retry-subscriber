@@ -60,13 +60,13 @@ class RetrySubscriberTest extends \PHPUnit_Framework_TestCase
     {
         $e = $this->createEvent(new Response(500));
         $f = RetrySubscriber::createChainFilter([
-            function () { return false; },
-            function () { return true; },
+            function () { return RetrySubscriber::DEFER; },
+            function () { return RetrySubscriber::RETRY; },
         ]);
         $this->assertTrue($f(1, $e));
-        $f = RetrySubscriber::createChainFilter([function () { return false; }]);
+        $f = RetrySubscriber::createChainFilter([function () { return RetrySubscriber::DEFER; }]);
         $this->assertFalse($f(1, $e));
-        $f = RetrySubscriber::createChainFilter([function () { return true; }]);
+        $f = RetrySubscriber::createChainFilter([function () { return RetrySubscriber::RETRY; }]);
         $this->assertTrue($f(1, $e));
     }
 
@@ -74,9 +74,9 @@ class RetrySubscriberTest extends \PHPUnit_Framework_TestCase
     {
         $e = $this->createEvent(new Response(500));
         $f = RetrySubscriber::createChainFilter([
-            function () { return false; },
-            function () { return -1; },
-            function () { throw new \Exception('Did not break chain!'); },
+            function () { return RetrySubscriber::DEFER; },
+            function () { return RetrySubscriber::BREAK_CHAIN; },
+            function () { $this->fail('Did not break chain!'); },
         ]);
         $this->assertFalse($f(1, $e));
     }

@@ -45,7 +45,7 @@ filter
 delay
     (callable) Accepts the number of retries and an AbstractTransferEvent and
     returns the amount of of time in seconds to delay. If no value is provided,
-    a default exponential backoff implementation.
+    a default exponential backoff implementation is used.
 max
     (int) Maximum number of retries to allow before giving up. Defaults to 5.
 sleep
@@ -57,7 +57,7 @@ sleep
 Determining what should be retried
 ----------------------------------
 
-The requied ``filter`` option of the RetrySubscriber's constructor is a
+The required ``filter`` option of the RetrySubscriber's constructor is a
 callable that is invoked to determine if a request should be retried.
 
 When the filter is invoked, it is provided the current retry count for the
@@ -93,13 +93,20 @@ endpoint:
 Filter Chains
 ~~~~~~~~~~~~~
 
-Here's an example of using a more customizable retry chain. This example retries
-faile 500 and 503 responses for only idempotent GET and HEAD requests. Retry
-chains are created using the static ``RetrySubscriber::createFilterChain()``
-method. This method accepts an array of callable filters that are each invoked
-one after the other until a filter returns ``true`` (meaning the request should
-be retried), a filter returns ``-1`` (meaning the chain should be broken and
-the request should not be retried), or the last filter has been called.
+You can create more customizable retry logic with filter chains, which are
+created using the static ``RetrySubscriber::createFilterChain()`` method. This
+method accepts an array of callable filters that are each invoked one after the
+other. The filters in the chain should return one of the following values,
+which affects how the rest of the chain is executed.
+
+* ``RetrySubscriber::RETRY`` (i.e., ``true``) – Retry the request.
+* ``RetrySubscriber::DEFER`` (i.e., ``false``) – Defer to the next filter in
+  the chain.
+* ``RetrySubscriber::BREAK_CHAIN`` (i.e., ``-1``) – Stop the filter chain, and
+  do **not** retry the request.
+
+Here's an example using filter chains that retries failed 500 and 503 responses
+for only idempotent GET and HEAD requests.
 
 .. code-block:: php
 
@@ -115,11 +122,11 @@ the request should not be retried), or the last filter has been called.
 
             // Break the filter if it was not an idempotent request
             if (!in_array($method, ['GET', 'HEAD'])) {
-                return -1;
+                return RetrySubscriber::BREAK_CHAIN;
             }
 
             // Otherwise, defer to subsequent filters
-            return false;
+            return RetrySubscriber::DEFER;
         },
         // Performs the last check, returning ``true`` or ``false`` based on
         // if the response received a 500 or 503 status code.

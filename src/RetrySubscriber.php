@@ -16,6 +16,9 @@ use Psr\Log\LogLevel;
  */
 class RetrySubscriber implements SubscriberInterface
 {
+    const RETRY = true;
+    const DEFER = false;
+    const BREAK_CHAIN = -1;
     const MSG_FORMAT = '[{ts}] {method} {url} - {code} {phrase} - Retries: {retries}, Delay: {delay}, Time: {connect_time}, {total_time}, Error: {error}';
 
     /** @var callable */
@@ -149,7 +152,7 @@ class RetrySubscriber implements SubscriberInterface
     public static function createStatusFilter(array $failureStatuses = null)
     {
         $failureStatuses = $failureStatuses ?: [500, 503];
-        $failureStatuses = array_fill_keys($failureStatuses, 1);
+        $failureStatuses = array_fill_keys($failureStatuses, true);
 
         return function ($retries, AbstractTransferEvent $event) use ($failureStatuses) {
             if (!($response = $event->getResponse())) {
