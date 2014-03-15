@@ -18,6 +18,19 @@ Here's a simple example of how it's used:
     $client = new GuzzleHttp\Client();
     $client->getEmitter()->attach($retry);
 
+Installing
+----------
+
+Add the following to your composer.json:
+
+.. code-block:: javascript
+
+    {
+        "require": {
+            "guzzlehttp/streams": "0.1.0"
+        }
+    }
+
 Creating a RetrySubscriber
 --------------------------
 
