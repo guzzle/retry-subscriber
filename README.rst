@@ -2,7 +2,7 @@
 Guzzle Retry Subscriber
 =======================
 
-Retries failed HTTP requests using customizable retry stragies.
+Retries failed HTTP requests using customizable retry strategies.
 
 Here's a simple example of how it's used:
 
