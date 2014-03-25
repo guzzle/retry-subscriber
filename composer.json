@@ -16,7 +16,7 @@
         "guzzlehttp/guzzle": "4.0.*@RC"
     },
     "require-dev": {
-        "guzzlehttp/log-subscriber": "dev-master",
+        "guzzlehttp/log-subscriber": "0.1.*",
         "phpunit/phpunit": "4.*"
     },
     "autoload": {
