@@ -222,6 +222,6 @@ class RetrySubscriber implements SubscriberInterface
      */
     private static function defaultSleep($time, AbstractTransferEvent $event)
     {
-        usleep($time * 1000);
+        sleep($time);
     }
 }
