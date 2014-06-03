@@ -44,7 +44,7 @@ filter
     false to denote if the request must be retried.
 delay
     (callable) Accepts the number of retries and an AbstractTransferEvent and
-    returns the amount of of time in seconds to delay. If no value is provided,
+    returns the amount of time in seconds to delay. If no value is provided,
     a default exponential backoff implementation is used.
 max
     (int) Maximum number of retries to allow before giving up. Defaults to 5.
@@ -76,7 +76,7 @@ endpoint:
     use GuzzleHttp\Subscriber\Retry\RetrySubscriber;
 
     $retry = new RetrySubscriber([
-        'filter' => function (AbstractTransferEvent $event) {
+        'filter' => function ($retries, AbstractTransferEvent $event) {
             $resource = $event->getRequest()->getResource();
             // A response is not always received (e.g., for timeouts)
             $code = $event->getResponse()
@@ -115,7 +115,7 @@ for only idempotent GET and HEAD requests.
 
     // Retry 500 and 503 responses that were sent as GET and HEAD requests.
     $filter = RetrySubscriber::createChainFilter([
-        function (AbstractTransferEvent $event) {
+        function ($retries, AbstractTransferEvent $event) {
             $method = $event->getRequests()
                 ? $event->getRequest()->getMethod()
                 : null;
