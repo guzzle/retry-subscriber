@@ -41,15 +41,17 @@ class RetrySubscriber implements SubscriberInterface
      *       The filter must return true or false to denote if the request must
      *       be retried.
      *     - delay: (callable) Accepts the number of retries and an
-     *       AbstractTransferEvent and returns the amount of of time in seconds
-     *       to delay. If no value is provided, a default exponential backoff
-     *       implementation.
+     *       AbstractTransferEvent and returns the amount of of time in
+     *       milliseconds to delay. If no value is provided, a default
+     *       exponential backoff implementation.
      *     - max: (int) Maximum number of retries to allow before giving up.
      *       Defaults to 5.
      *     - sleep: (callable) Function invoked when the subscriber needs to
-     *       sleep. Accepts a float containing the amount of time in seconds to
-     *       sleep and an AbstractTransferEvent. Defaults to a usleep().
-     * @throws \InvalidArgumentException if a filter is not provided.
+     *       sleep. Accepts a float containing the amount of time in
+     *       milliseconds to sleep and an AbstractTransferEvent. Defaults to a
+     *       usleep().
+     *
+*@throws \InvalidArgumentException if a filter is not provided.
      */
     public function __construct(array $config)
     {
@@ -94,7 +96,7 @@ class RetrySubscriber implements SubscriberInterface
     }
 
     /**
-     * Returns an exponential delay calculation
+     * Returns an exponential delay calculation in milliseconds
      *
      * @param int                   $retries Number of retries so far
      * @param AbstractTransferEvent $event   Event containing transaction info

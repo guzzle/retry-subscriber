@@ -44,13 +44,13 @@ filter
     false to denote if the request must be retried.
 delay
     (callable) Accepts the number of retries and an AbstractTransferEvent and
-    returns the amount of of time in seconds to delay. If no value is provided,
-    a default exponential backoff implementation is used.
+    returns the amount of of time in milliseconds to delay. If no value is
+    provided, a default exponential backoff implementation is used.
 max
     (int) Maximum number of retries to allow before giving up. Defaults to 5.
 sleep
     (callable) Function invoked when the subscriber needs to sleep. Accepts a
-    float containing the amount of time in seconds to sleep and an
+    float containing the amount of time in milliseconds to sleep and an
     AbstractTransferEvent. If not provided, a default ``usleep()``
     implementation is used.
 
@@ -146,7 +146,7 @@ before retrying a request that has been marked as needing a retry. The callable
 accepts the current number of retries and either a
 ``GuzzleHttp\Event\CompleteEvent`` or a ``GuzzleHttp\Event\ErrorEvent``. The
 function must then return an integer or float representing the amount of time
-in seconds to sleep.
+in milliseconds to sleep.
 
 .. note::
 
