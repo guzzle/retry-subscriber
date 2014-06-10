@@ -38,6 +38,22 @@ class RetrySubscriberTest extends \PHPUnit_Framework_TestCase
         $this->assertFalse($f(1, $e));
     }
 
+    public function testCreatesIdempotentFilter()
+    {
+        $u = 'http://foo.com';
+        $f = RetrySubscriber::createIdempotentFilter();
+        $e = $this->createEvent(new Response(500), new Request('GET', $u));
+        $this->assertFalse($f(1, $e));
+        $e = $this->createEvent(new Response(500), new Request('PUT', $u));
+        $this->assertSame(-1, $f(0, $e));
+        $e = $this->createEvent(new Response(500), new Request('POST', $u));
+        $this->assertSame(-1, $f(1, $e));
+        $e = $this->createEvent(new Response(500), new Request('DELETE', $u));
+        $this->assertFalse($f(1, $e));
+        $e = $this->createEvent(new Response(500), new Request('PATCH', $u));
+        $this->assertSame(-1, $f(1, $e));
+    }
+
     public function testCreatesDefaultCurlFilter()
     {
         $f = RetrySubscriber::createCurlFilter();

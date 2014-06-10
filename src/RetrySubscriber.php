@@ -51,21 +51,24 @@ class RetrySubscriber implements SubscriberInterface
      *       milliseconds to sleep and an AbstractTransferEvent. Defaults to a
      *       usleep().
      *
-*@throws \InvalidArgumentException if a filter is not provided.
+     * @throws \InvalidArgumentException if a filter is not provided.
      */
     public function __construct(array $config)
     {
-        static $defaultDelay = [__CLASS__, 'exponentialDelay'];
-        static $defaultSleep = [__CLASS__, 'defaultSleep'];
-
         if (!isset($config['filter'])) {
             throw new \InvalidArgumentException('A "filter" is required');
         }
 
         $this->filter = $config['filter'];
-        $this->delayFn = isset($config['delay']) ? $config['delay'] : $defaultDelay;
-        $this->sleepFn = isset($config['sleep']) ? $config['sleep'] : $defaultSleep;
-        $this->maxRetries = isset($config['max']) ? $config['max'] : 5;
+        $this->delayFn = isset($config['delay'])
+            ? $config['delay']
+            : [__CLASS__, 'exponentialDelay'];
+        $this->sleepFn = isset($config['sleep'])
+            ? $config['sleep']
+            : [__CLASS__, 'defaultSleep'];
+        $this->maxRetries = isset($config['max'])
+            ? $config['max']
+            : 5;
     }
 
     public function getEvents()
@@ -83,25 +86,35 @@ class RetrySubscriber implements SubscriberInterface
         $request = $event->getRequest();
         $retries = (int) $request->getConfig()->get('retries');
 
-        if ($retries < $this->maxRetries) {
-            $filterFn = $this->filter;
-            if ($filterFn($retries, $event)) {
-                $delayFn = $this->delayFn;
-                $sleepFn = $this->sleepFn;
-                $sleepFn($delayFn($retries, $event), $event);
-                $request->getConfig()->set('retries', ++$retries);
-                $event->intercept($event->getClient()->send($request));
-            }
+        if ($retries >= $this->maxRetries) {
+            return;
+        }
+
+        $filterFn = $this->filter;
+        if ($filterFn($retries, $event)) {
+            $delayFn = $this->delayFn;
+            $sleepFn = $this->sleepFn;
+            $sleepFn($delayFn($retries, $event), $event);
+            $request->getConfig()->set('retries', ++$retries);
+            $event->intercept($event->getClient()->send($request));
         }
     }
 
     /**
-     * Returns an exponential delay calculation in milliseconds
+     * Default sleep implementation.
+     */
+    public static function defaultSleep($time, AbstractTransferEvent $event)
+    {
+        usleep($time * 1000);
+    }
+
+    /**
+     * Returns an exponential delay calculation in milliseconds.
      *
      * @param int                   $retries Number of retries so far
      * @param AbstractTransferEvent $event   Event containing transaction info
      *
-     * @return int
+     * @return int Returns the number of milliseconds to sleep
      */
     public static function exponentialDelay(
         $retries,
@@ -131,13 +144,19 @@ class RetrySubscriber implements SubscriberInterface
             $formatter = new Formatter($formatter);
         }
 
-        return function ($retries, AbstractTransferEvent $event) use ($delayFn, $logger, $formatter) {
+        return function (
+            $retries,
+            AbstractTransferEvent $event
+        ) use ($delayFn, $logger, $formatter) {
             $delay = $delayFn($retries, $event);
             $logger->log(LogLevel::NOTICE, $formatter->format(
                 $event->getRequest(),
                 $event->getResponse(),
                 $event instanceof ErrorEvent ? $event->getException() : null,
-                ['retries' => $retries + 1, 'delay' => $delay] + $event->getTransferInfo()
+                [
+                    'retries' => $retries + 1,
+                    'delay'   => $delay
+                ] + $event->getTransferInfo()
             ));
             return $delay;
         };
@@ -147,16 +166,19 @@ class RetrySubscriber implements SubscriberInterface
      * Creates a retry filter based on HTTP status codes
      *
      * @param array $failureStatuses Pass an array of status codes to override
-     *     the default of [500, 503]
-     *
+     *                               the default of [500, 503].
      * @return callable
      */
-    public static function createStatusFilter(array $failureStatuses = null)
-    {
-        $failureStatuses = $failureStatuses ?: [500, 503];
+    public static function createStatusFilter(
+        array $failureStatuses = [500, 503]
+    ) {
+        // Convert the array of values into a set for hash lookups
         $failureStatuses = array_fill_keys($failureStatuses, true);
 
-        return function ($retries, AbstractTransferEvent $event) use ($failureStatuses) {
+        return function (
+            $retries,
+            AbstractTransferEvent $event
+        ) use ($failureStatuses) {
             if (!($response = $event->getResponse())) {
                 return false;
             }
@@ -165,11 +187,30 @@ class RetrySubscriber implements SubscriberInterface
     }
 
     /**
+     * Creates a retry filter based on HTTP request methods.
+     *
+     * If the HTTP request method is a PUT, POST, or PATCH request, then the
+     * request will not be retried. Otherwise, the filter will defer to other
+     * filters if added to a filter chain via `createFilterChain()`.
+     *
+     * @return callable
+     */
+    public static function createIdempotentFilter()
+    {
+        static $noRetry = ['PUT' => true, 'POST' => true, 'PATCH' => true];
+
+        return function ($retries, AbstractTransferEvent $e) use ($noRetry) {
+            return isset($noRetry[$e->getRequest()->getMethod()])
+                ? self::BREAK_CHAIN
+                : self::DEFER;
+        };
+    }
+
+    /**
      * Creates a retry filter based on cURL error codes.
      *
      * @param array $errorCodes Pass an array of curl error codes to override
-     *     the default list of error codes.
-     *
+     *                          the default list of error codes.
      * @return callable
      */
     public static function createCurlFilter($errorCodes = null)
@@ -182,7 +223,10 @@ class RetrySubscriber implements SubscriberInterface
 
         $errorCodes = array_fill_keys($errorCodes, 1);
 
-        return function ($retries, AbstractTransferEvent $event) use ($errorCodes) {
+        return function (
+            $retries,
+            AbstractTransferEvent $event
+        ) use ($errorCodes) {
             return isset($errorCodes[(int) $event->getTransferInfo('curl_result')]);
         };
     }
@@ -203,25 +247,20 @@ class RetrySubscriber implements SubscriberInterface
      */
     public static function createChainFilter(array $filters)
     {
-        return function ($retries, AbstractTransferEvent $event) use ($filters) {
+        return function (
+            $retries,
+            AbstractTransferEvent $event
+        ) use ($filters) {
             foreach ($filters as $filter) {
                 $result = $filter($retries, $event);
-                if ($result === true) {
+                if ($result === self::RETRY) {
                     return true;
-                } elseif ($result === -1) {
+                } elseif ($result === self::BREAK_CHAIN) {
                     return false;
                 }
             }
 
             return false;
         };
-    }
-
-    /**
-     * Default sleep implementation
-     */
-    private static function defaultSleep($time, AbstractTransferEvent $event)
-    {
-        usleep($time * 1000);
     }
 }
