@@ -40,19 +40,31 @@ configuration options:
 filter
     (callable) (Required) Filter used to determine whether or not to retry a
     request. The filter must be a callable that accepts the current number of
-    retries and an AbstractTransferEvent object. The filter must return true or
-    false to denote if the request must be retried.
+    retries as the first argument and a
+    ``GuzzleHttp\Event\AbstractTransferEvent`` object as the second argument.
+    The filter must return ``true`` or ``false`` to denote if the request must be
+    retried.
 delay
-    (callable) Accepts the number of retries and an AbstractTransferEvent and
-    returns the amount of of time in milliseconds to delay. If no value is
-    provided, a default exponential backoff implementation is used.
+    Callable that accepts the number of retries as the first argument and a
+    ``GuzzleHttp\Event\AbstractTransferEvent`` as the second argument. The
+    callable must return the amount of of time (in milliseconds) to delay.
+
+    If no ``delay`` configuration value is provided, then a default exponential
+    backoff implementation is used.
 max
-    (int) Maximum number of retries to allow before giving up. Defaults to 5.
+    Integer representing the maximum number of retries to allow before giving
+    up.
+
+    If no ``max`` configuration value is provided, then a request will be
+    retried 5 times.
 sleep
-    (callable) Function invoked when the subscriber needs to sleep. Accepts a
-    float containing the amount of time in milliseconds to sleep and an
-    AbstractTransferEvent. If not provided, a default ``usleep()``
-    implementation is used.
+    Callable that is invoked when the subscriber needs to sleep. Accepts a
+    float containing the amount of time in milliseconds to sleep as the
+    first argument and and a ``GuzzleHttp\Event\AbstractTransferEvent`` as the
+    second argument.
+
+    If no configuration value is provided for the ``sleep`` configuration
+    option, then the subscriber will use PHP's ``usleep()`` function.
 
 Determining what should be retried
 ----------------------------------
@@ -76,7 +88,7 @@ endpoint:
     use GuzzleHttp\Subscriber\Retry\RetrySubscriber;
 
     $retry = new RetrySubscriber([
-        'filter' => function (AbstractTransferEvent $event) {
+        'filter' => function ($retries, AbstractTransferEvent $event) {
             $resource = $event->getRequest()->getResource();
             // A response is not always received (e.g., for timeouts)
             $code = $event->getResponse()
@@ -115,7 +127,7 @@ for only idempotent GET and HEAD requests.
 
     // Retry 500 and 503 responses that were sent as GET and HEAD requests.
     $filter = RetrySubscriber::createChainFilter([
-        function (AbstractTransferEvent $event) {
+        function ($retries, AbstractTransferEvent $event) {
             $method = $event->getRequests()
                 ? $event->getRequest()->getMethod()
                 : null;
