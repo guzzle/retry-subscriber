@@ -187,22 +187,25 @@ class RetrySubscriber implements SubscriberInterface
     }
 
     /**
-     * Creates a retry filter based on HTTP request methods.
+     * Creates a retry filter based on whether an HTTP method is considered
+     * "safe" or "idempotent" based on RFC 7231.
      *
      * If the HTTP request method is a PUT, POST, or PATCH request, then the
      * request will not be retried. Otherwise, the filter will defer to other
      * filters if added to a filter chain via `createFilterChain()`.
      *
      * @return callable
+     * @link http://tools.ietf.org/html/rfc7231#section-4.2.2
      */
     public static function createIdempotentFilter()
     {
-        static $noRetry = ['PUT' => true, 'POST' => true, 'PATCH' => true];
+        static $retry = ['GET' => true, 'HEAD' => true, 'PUT' => true,
+            'DELETE' => true, 'OPTIONS' => true, 'TRACE' => true];
 
-        return function ($retries, AbstractTransferEvent $e) use ($noRetry) {
-            return isset($noRetry[$e->getRequest()->getMethod()])
-                ? self::BREAK_CHAIN
-                : self::DEFER;
+        return function ($retries, AbstractTransferEvent $e) use ($retry) {
+            return isset($retry[$e->getRequest()->getMethod()])
+                ? self::DEFER
+                : self::BREAK_CHAIN;
         };
     }
 

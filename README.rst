@@ -118,7 +118,8 @@ which affects how the rest of the chain is executed.
   do **not** retry the request.
 
 Here's an example using filter chains that retries failed 500 and 503 responses
-for only idempotent GET and HEAD requests.
+for only idempotent or "safe" requests as defined by
+`RFC 7231 <http://tools.ietf.org/html/rfc7231#section-4.2.2>`_.
 
 .. code-block:: php
 
@@ -127,19 +128,8 @@ for only idempotent GET and HEAD requests.
 
     // Retry 500 and 503 responses that were sent as GET and HEAD requests.
     $filter = RetrySubscriber::createChainFilter([
-        function ($retries, AbstractTransferEvent $event) {
-            $method = $event->getRequests()
-                ? $event->getRequest()->getMethod()
-                : null;
-
-            // Break the filter if it was not an idempotent request
-            if (!in_array($method, ['GET', 'HEAD'])) {
-                return RetrySubscriber::BREAK_CHAIN;
-            }
-
-            // Otherwise, defer to subsequent filters
-            return RetrySubscriber::DEFER;
-        },
+        // Does early filter to force non-idempotent methods to NOT be retried.
+        RetrySubscriber::createIdempotentFilter(),
         // Performs the last check, returning ``true`` or ``false`` based on
         // if the response received a 500 or 503 status code.
         RetrySubscriber::createStatusFilter([500, 503])
