@@ -154,7 +154,7 @@ in milliseconds to sleep.
 
     Omitting this argument will use a default exponential backoff strategy.
 
-Here's an example of creating a custom delay that always delays for 1 second:
+Here's an example of creating a custom delay that always delays for 1 millisecond:
 
 .. code-block:: php
 
