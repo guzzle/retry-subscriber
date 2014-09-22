@@ -30,9 +30,6 @@ class RetrySubscriber implements SubscriberInterface
     /** @var int */
     private $maxRetries;
 
-    /** @var callable */
-    private $sleepFn;
-
     /**
      * @param array $config Associative array of configuration options.
      *     - filter: (callable) (Required) Filter used to determine whether or
@@ -46,10 +43,6 @@ class RetrySubscriber implements SubscriberInterface
      *       exponential backoff implementation.
      *     - max: (int) Maximum number of retries to allow before giving up.
      *       Defaults to 5.
-     *     - sleep: (callable) Function invoked when the subscriber needs to
-     *       sleep. Accepts a float containing the amount of time in
-     *       milliseconds to sleep and an AbstractTransferEvent. Defaults to a
-     *       usleep().
      *
      * @throws \InvalidArgumentException if a filter is not provided.
      */
@@ -63,9 +56,6 @@ class RetrySubscriber implements SubscriberInterface
         $this->delayFn = isset($config['delay'])
             ? $config['delay']
             : [__CLASS__, 'exponentialDelay'];
-        $this->sleepFn = isset($config['sleep'])
-            ? $config['sleep']
-            : [__CLASS__, 'defaultSleep'];
         $this->maxRetries = isset($config['max'])
             ? $config['max']
             : 5;
@@ -76,15 +66,16 @@ class RetrySubscriber implements SubscriberInterface
         return [
             // Fire before responses are verified (e.g., HttpError).
             'complete' => ['onComplete', RequestEvents::VERIFY_RESPONSE + 100],
-            // Fire soon after logging, history, and other early events.
-            'error'    => ['onComplete', RequestEvents::EARLY - 100]
+            // Fire last to retry only if absolutely necessary.
+            'error'    => ['onComplete', RequestEvents::LATE]
         ];
     }
 
     public function onComplete(AbstractTransferEvent $event)
     {
         $request = $event->getRequest();
-        $retries = (int) $request->getConfig()->get('retries');
+        $config = $request->getConfig();
+        $retries = (int) $config['retries'];
 
         if ($retries >= $this->maxRetries) {
             return;
@@ -93,19 +84,9 @@ class RetrySubscriber implements SubscriberInterface
         $filterFn = $this->filter;
         if ($filterFn($retries, $event)) {
             $delayFn = $this->delayFn;
-            $sleepFn = $this->sleepFn;
-            $sleepFn($delayFn($retries, $event), $event);
-            $request->getConfig()->set('retries', ++$retries);
-            $event->intercept($event->getClient()->send($request));
+            $config['retries'] = ++$retries;
+            $event->retry($delayFn($retries, $event));
         }
-    }
-
-    /**
-     * Default sleep implementation.
-     */
-    public static function defaultSleep($time, AbstractTransferEvent $event)
-    {
-        usleep($time * 1000);
     }
 
     /**

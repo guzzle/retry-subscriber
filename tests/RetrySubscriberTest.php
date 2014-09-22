@@ -139,15 +139,10 @@ class RetrySubscriberTest extends \PHPUnit_Framework_TestCase
 
     public function testProvidesDefaultDelay()
     {
-        $called = false;
         $retry = new RetrySubscriber([
             'filter' => function () {
                 static $times = 0;
                 return ++$times == 1;
-            },
-            'sleep' => function ($time) use (&$called) {
-                $this->assertEquals(0, $time);
-                $called = true;
             }
         ]);
         $mock = new Mock([new Response(200), new Response(200)]);
@@ -155,7 +150,6 @@ class RetrySubscriberTest extends \PHPUnit_Framework_TestCase
         $client->getEmitter()->attach($mock);
         $client->getEmitter()->attach($retry);
         $client->get('http://httbin.org/get');
-        $this->assertTrue($called);
     }
 
     public function testProvidesDefaultSleepFn()

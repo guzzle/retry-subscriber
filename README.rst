@@ -57,14 +57,6 @@ max
 
     If no ``max`` configuration value is provided, then a request will be
     retried 5 times.
-sleep
-    Callable that is invoked when the subscriber needs to sleep. Accepts a
-    float containing the amount of time in milliseconds to sleep as the
-    first argument and and a ``GuzzleHttp\Event\AbstractTransferEvent`` as the
-    second argument.
-
-    If no configuration value is provided for the ``sleep`` configuration
-    option, then the subscriber will use PHP's ``usleep()`` function.
 
 Determining what should be retried
 ----------------------------------
@@ -180,28 +172,3 @@ request can be retried up to 5 times before it is allowed to fail.
         'filter' => RetrySubscriber::createStatusFilter(),
         'max'    => 3
     ]);
-
-Testing without sleeping
-------------------------
-
-The final, optional, option in the RetrySubscriber's constructor is ``sleep``,
-a callable that is used to perform the actual sleep. This function accepts a
-float representing the amount of time to sleep. If not provided, usleep() will
-be called to perform the sleep.
-
-Here's an example of creating a retry subscriber that doesn't actually perform
-a sleep when it is told to sleep.
-
-.. code-block:: php
-
-    use GuzzleHttp\Subscriber\Retry\RetrySubscriber;
-
-    $retry = new RetrySubscriber([
-        'filter' => RetrySubscriber::createStatusFilter(),
-        'sleep'  => function ($time) { return; }
-    ]);
-
-.. hint::
-
-    It may be helpful when testing custom retry strategies to provide a custom
-    function that does not actually perform a sleep.
