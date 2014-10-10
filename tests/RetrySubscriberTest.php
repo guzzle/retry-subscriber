@@ -3,6 +3,7 @@
 namespace GuzzleHttp\Tests\Subscriber\RetrySubscriber;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Message\Request;
 use GuzzleHttp\Message\RequestInterface;
@@ -61,7 +62,7 @@ class RetrySubscriberTest extends \PHPUnit_Framework_TestCase
     public function testCreatesDefaultCurlFilter()
     {
         $f = RetrySubscriber::createCurlFilter();
-        $e = $this->createEvent(null, null, null, ['curl_result' => CURLE_RECV_ERROR]);
+        $e = $this->createEvent(null, null, null, ['curl_result' => CURLE_COULDNT_CONNECT]);
         $this->assertTrue($f(1, $e));
         $e = $this->createEvent(null, null, null, ['curl_result' => CURLE_OK]);
         $this->assertFalse($f(0, $e));
@@ -74,6 +75,21 @@ class RetrySubscriberTest extends \PHPUnit_Framework_TestCase
         $this->assertFalse($f(1, $e));
         $e = $this->createEvent(null, null, null, ['curl_result' => CURLE_OK]);
         $this->assertTrue($f(0, $e));
+    }
+
+    public function testCreatesConnectionFilter()
+    {
+        $f = RetrySubscriber::createConnectFilter();
+        $e = $this->createEvent(
+            null,
+            null,
+            new ConnectException('foo', new Request('GET', 'http://foo.com')),
+            [],
+            'GuzzleHttp\Event\ErrorEvent'
+        );
+        $this->assertTrue($f(1, $e));
+        $e = $this->createEvent(null, null, null);
+        $this->assertFalse($f(0, $e));
     }
 
     public function testCreatesChainFilter()

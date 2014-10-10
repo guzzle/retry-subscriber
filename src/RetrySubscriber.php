@@ -7,6 +7,7 @@ use GuzzleHttp\Event\SubscriberInterface;
 use GuzzleHttp\Event\AbstractTransferEvent;
 use GuzzleHttp\Event\ErrorEvent;
 use GuzzleHttp\Subscriber\Log\Formatter;
+use GuzzleHttp\Exception\ConnectException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 
@@ -199,11 +200,13 @@ class RetrySubscriber implements SubscriberInterface
      */
     public static function createCurlFilter($errorCodes = null)
     {
-        $errorCodes = $errorCodes ?: [CURLE_COULDNT_RESOLVE_HOST,
-            CURLE_COULDNT_CONNECT, CURLE_PARTIAL_FILE, CURLE_WRITE_ERROR,
-            CURLE_READ_ERROR, CURLE_OPERATION_TIMEOUTED,
-            CURLE_SSL_CONNECT_ERROR, CURLE_HTTP_PORT_FAILED, CURLE_GOT_NOTHING,
-            CURLE_SEND_ERROR, CURLE_RECV_ERROR];
+        $errorCodes = $errorCodes ?: [
+            CURLE_OPERATION_TIMEOUTED,
+            CURLE_COULDNT_RESOLVE_HOST,
+            CURLE_COULDNT_CONNECT,
+            CURLE_SSL_CONNECT_ERROR,
+            CURLE_GOT_NOTHING
+        ];
 
         $errorCodes = array_fill_keys($errorCodes, 1);
 
@@ -212,6 +215,19 @@ class RetrySubscriber implements SubscriberInterface
             AbstractTransferEvent $event
         ) use ($errorCodes) {
             return isset($errorCodes[(int) $event->getTransferInfo('curl_result')]);
+        };
+    }
+
+    /**
+     * Creates a retry filter that retries connection exceptions.
+     *
+     * @return callable
+     */
+    public static function createConnectFilter()
+    {
+        return function ($retries, AbstractTransferEvent $event) {
+            return $event instanceof ErrorEvent
+                && $event->getException() instanceof ConnectException;
         };
     }
 
