@@ -19,7 +19,6 @@
         "guzzlehttp/log-subscriber": "~1.0",
         "phpunit/phpunit": "~4.0"
     },
-    "minimum-stability": "dev",
     "autoload": {
         "psr-4": { "GuzzleHttp\\Subscriber\\Retry\\": "src/" }
     },
