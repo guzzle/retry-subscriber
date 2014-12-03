@@ -200,6 +200,11 @@ class RetrySubscriber implements SubscriberInterface
      */
     public static function createCurlFilter($errorCodes = null)
     {
+        // Only use the cURL filter if cURL is loaded.
+        if (!extension_loaded('curl')) {
+            return function () { return false; };
+        }
+
         $errorCodes = $errorCodes ?: [
             CURLE_OPERATION_TIMEOUTED,
             CURLE_COULDNT_RESOLVE_HOST,
@@ -210,11 +215,8 @@ class RetrySubscriber implements SubscriberInterface
 
         $errorCodes = array_fill_keys($errorCodes, 1);
 
-        return function (
-            $retries,
-            AbstractTransferEvent $event
-        ) use ($errorCodes) {
-            return isset($errorCodes[(int) $event->getTransferInfo('curl_result')]);
+        return function ($retries, AbstractTransferEvent $e) use ($errorCodes) {
+            return isset($errorCodes[(int) $e->getTransferInfo('curl_result')]);
         };
     }
 
