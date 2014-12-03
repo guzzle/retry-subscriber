@@ -1,5 +1,4 @@
 <?php
-
 namespace GuzzleHttp\Tests\Subscriber\RetrySubscriber;
 
 use GuzzleHttp\Client;

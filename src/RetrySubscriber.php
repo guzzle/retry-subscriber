@@ -1,5 +1,4 @@
 <?php
-
 namespace GuzzleHttp\Subscriber\Retry;
 
 use GuzzleHttp\Event\RequestEvents;
