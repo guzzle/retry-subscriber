@@ -195,7 +195,7 @@ class RetrySubscriber implements SubscriberInterface
      *
      * @param array $errorCodes Pass an array of curl error codes to override
      *                          the default list of error codes.
-     * @return callable
+     * @return callable|false
      */
     public static function createCurlFilter($errorCodes = null)
     {
