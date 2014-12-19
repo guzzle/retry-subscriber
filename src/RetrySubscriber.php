@@ -1,6 +1,7 @@
 <?php
 namespace GuzzleHttp\Subscriber\Retry;
 
+use GuzzleHttp\Event\AbstractRetryableEvent;
 use GuzzleHttp\Event\RequestEvents;
 use GuzzleHttp\Event\SubscriberInterface;
 use GuzzleHttp\Event\AbstractTransferEvent;
@@ -71,12 +72,9 @@ class RetrySubscriber implements SubscriberInterface
         ];
     }
 
-    public function onComplete(AbstractTransferEvent $event)
+    public function onComplete(AbstractRetryableEvent $event)
     {
-        $request = $event->getRequest();
-        $config = $request->getConfig();
-        $retries = (int) $config['retries'];
-
+        $retries = $event->getRetryCount();
         if ($retries >= $this->maxRetries) {
             return;
         }
@@ -84,7 +82,6 @@ class RetrySubscriber implements SubscriberInterface
         $filterFn = $this->filter;
         if ($filterFn($retries, $event)) {
             $delayFn = $this->delayFn;
-            $config['retries'] = ++$retries;
             $event->retry($delayFn($retries, $event));
         }
     }
