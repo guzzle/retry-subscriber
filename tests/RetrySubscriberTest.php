@@ -61,18 +61,18 @@ class RetrySubscriberTest extends \PHPUnit_Framework_TestCase
     public function testCreatesDefaultCurlFilter()
     {
         $f = RetrySubscriber::createCurlFilter();
-        $e = $this->createEvent(null, null, null, ['curl_result' => CURLE_COULDNT_CONNECT]);
+        $e = $this->createEvent(null, null, null, ['errno' => CURLE_COULDNT_CONNECT]);
         $this->assertTrue($f(1, $e));
-        $e = $this->createEvent(null, null, null, ['curl_result' => CURLE_OK]);
+        $e = $this->createEvent(null, null, null, ['errno' => CURLE_OK]);
         $this->assertFalse($f(0, $e));
     }
 
     public function testCreatesCustomCurlFilter()
     {
         $f = RetrySubscriber::createCurlFilter([CURLE_OK]);
-        $e = $this->createEvent(null, null, null, ['curl_result' => CURLE_RECV_ERROR]);
+        $e = $this->createEvent(null, null, null, ['errno' => CURLE_RECV_ERROR]);
         $this->assertFalse($f(1, $e));
-        $e = $this->createEvent(null, null, null, ['curl_result' => CURLE_OK]);
+        $e = $this->createEvent(null, null, null, ['errno' => CURLE_OK]);
         $this->assertTrue($f(0, $e));
     }
 
