@@ -170,7 +170,7 @@ class RetrySubscriber implements SubscriberInterface
      *
      * If the HTTP request method is a PUT, POST, or PATCH request, then the
      * request will not be retried. Otherwise, the filter will defer to other
-     * filters if added to a filter chain via `createFilterChain()`.
+     * filters if added to a filter chain via `createChainFilter()`.
      *
      * @return callable
      * @link http://tools.ietf.org/html/rfc7231#section-4.2.2
