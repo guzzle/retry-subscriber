@@ -98,7 +98,7 @@ Filter Chains
 ~~~~~~~~~~~~~
 
 You can create more customizable retry logic with filter chains, which are
-created using the static ``RetrySubscriber::createFilterChain()`` method. This
+created using the static ``RetrySubscriber::createChainFilter()`` method. This
 method accepts an array of callable filters that are each invoked one after the
 other. The filters in the chain should return one of the following values,
 which affects how the rest of the chain is executed.
