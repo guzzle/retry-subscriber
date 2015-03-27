@@ -80,9 +80,9 @@ class RetrySubscriber implements SubscriberInterface
         }
 
         $filterFn = $this->filter;
-        if ($filterFn($retries, $event)) {
+        if (call_user_func($filterFn, $retries, $event)) {
             $delayFn = $this->delayFn;
-            $event->retry($delayFn($retries, $event));
+            $event->retry(call_user_func($delayFn, $retries, $event));
         }
     }
 
@@ -126,7 +126,7 @@ class RetrySubscriber implements SubscriberInterface
             $retries,
             AbstractTransferEvent $event
         ) use ($delayFn, $logger, $formatter) {
-            $delay = $delayFn($retries, $event);
+            $delay = call_user_func($delayFn, $retries, $event);
             $logger->log(LogLevel::NOTICE, $formatter->format(
                 $event->getRequest(),
                 $event->getResponse(),
