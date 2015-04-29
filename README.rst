@@ -27,7 +27,7 @@ Add the following to your composer.json:
 
     {
         "require": {
-            "guzzlehttp/retry-subscriber": "~1.0"
+            "guzzlehttp/retry-subscriber": "~2.0"
         }
     }
 
