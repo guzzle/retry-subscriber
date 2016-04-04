@@ -212,7 +212,7 @@ class RetrySubscriber implements SubscriberInterface
         $errorCodes = array_fill_keys($errorCodes, 1);
 
         return function ($retries, AbstractTransferEvent $e) use ($errorCodes) {
-            return isset($errorCodes[(int) $e->getTransferInfo('curl_result')]);
+            return isset($errorCodes[(int) $e->getTransferInfo('errno')]);
         };
     }
 
